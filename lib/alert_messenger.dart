@@ -1,68 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-const kAlertHeight = 80.0;
-
-enum AlertPriority {
-  error(2),
-  warning(1),
-  info(0);
-
-  const AlertPriority(this.value);
-  final int value;
-}
-
-class Alert extends StatelessWidget {
-  const Alert({
-    super.key,
-    required this.backgroundColor,
-    required this.child,
-    required this.leading,
-    required this.priority,
-  });
-
-  final Color backgroundColor;
-  final Widget child;
-  final Widget leading;
-  final AlertPriority priority;
-
-  @override
-  Widget build(BuildContext context) {
-    final statusbarHeight = MediaQuery.of(context).padding.top;
-    return Material(
-      child: Ink(
-        color: backgroundColor,
-        height: kAlertHeight + statusbarHeight,
-        child: Column(
-          children: [
-            SizedBox(height: statusbarHeight),
-            Expanded(
-              child: Row(
-                children: [
-                  const SizedBox(width: 28.0),
-                  IconTheme(
-                    data: const IconThemeData(
-                      color: Colors.white,
-                      size: 36,
-                    ),
-                    child: leading,
-                  ),
-                  const SizedBox(width: 16.0),
-                  Expanded(
-                    child: DefaultTextStyle(
-                      style: const TextStyle(color: Colors.white),
-                      child: child,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 28.0),
-          ],
-        ),
-      ),
-    );
-  }
-}
+import 'alert_widget.dart';
+import 'bloc/alert_cubit.dart';
+import 'constants/height_constant.dart';
 
 class AlertMessenger extends StatefulWidget {
   const AlertMessenger({
@@ -83,19 +24,22 @@ class AlertMessenger extends StatefulWidget {
       throw FlutterError.fromParts(
         [
           ErrorSummary('No AlertMessenger was found in the Element tree'),
-          ErrorDescription('AlertMessenger is required in order to show and hide alerts.'),
-          ...context.describeMissingAncestor(expectedAncestorType: AlertMessenger),
+          ErrorDescription(
+              'AlertMessenger is required in order to show and hide alerts.'),
+          ...context.describeMissingAncestor(
+              expectedAncestorType: AlertMessenger),
         ],
       );
     }
   }
 }
 
-class AlertMessengerState extends State<AlertMessenger> with TickerProviderStateMixin {
+class AlertMessengerState extends State<AlertMessenger>
+    with TickerProviderStateMixin {
   late final AnimationController controller;
   late final Animation<double> animation;
 
-  Widget? alertWidget;
+  AlertData? alertData;
 
   @override
   void initState() {
@@ -122,42 +66,57 @@ class AlertMessengerState extends State<AlertMessenger> with TickerProviderState
     super.dispose();
   }
 
-  void showAlert({required Alert alert}) {
-    setState(() => alertWidget = alert);
-    controller.forward();
+  Future<void> _showAlert(AlertData value) async {
+    alertData = value;
+    await controller.forward();
   }
 
-  void hideAlert() {
-    controller.reverse();
+  Future<void> _hideAlert() async {
+    await controller.reverse();
   }
 
   @override
   Widget build(BuildContext context) {
     final statusbarHeight = MediaQuery.of(context).padding.top;
 
-    return AnimatedBuilder(
-      animation: animation,
-      builder: (context, child) {
-        final position = animation.value + kAlertHeight;
-        return Stack(
-          clipBehavior: Clip.antiAliasWithSaveLayer,
-          children: [
-            Positioned.fill(
-              top: position <= statusbarHeight ? 0 : position - statusbarHeight,
-              child: _AlertMessengerScope(
-                state: this,
-                child: widget.child,
-              ),
-            ),
-            Positioned(
-              top: animation.value,
-              left: 0,
-              right: 0,
-              child: alertWidget ?? const SizedBox.shrink(),
-            ),
-          ],
-        );
+    return BlocListener<AlertCubit, AlertData?>(
+      listener: (context, state) async {
+        if (state != null) {
+          await _hideAlert();
+
+          _showAlert(state);
+        } else {
+          _hideAlert();
+        }
       },
+      child: AnimatedBuilder(
+        animation: animation,
+        builder: (context, child) {
+          final position = animation.value + kAlertHeight;
+          return Stack(
+            clipBehavior: Clip.antiAliasWithSaveLayer,
+            children: [
+              Positioned.fill(
+                top: position <= statusbarHeight
+                    ? 0
+                    : position - statusbarHeight,
+                child: _AlertMessengerScope(
+                  state: this,
+                  child: widget.child,
+                ),
+              ),
+              Positioned(
+                top: animation.value,
+                left: 0,
+                right: 0,
+                child: alertData != null
+                    ? AlertWidget(alertData: alertData!)
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }
@@ -171,7 +130,8 @@ class _AlertMessengerScope extends InheritedWidget {
   final AlertMessengerState state;
 
   @override
-  bool updateShouldNotify(_AlertMessengerScope oldWidget) => state != oldWidget.state;
+  bool updateShouldNotify(_AlertMessengerScope oldWidget) =>
+      state != oldWidget.state;
 
   static _AlertMessengerScope? maybeOf(BuildContext context) {
     return context.dependOnInheritedWidgetOfExactType<_AlertMessengerScope>();

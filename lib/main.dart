@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'alert_messenger.dart';
+import 'bloc/alert_cubit.dart';
 
 void main() => runApp(const AlertPriorityApp());
 
@@ -20,10 +22,13 @@ class AlertPriorityApp extends StatelessWidget {
           ),
         ),
       ),
-      home: AlertMessenger(
-        child: Builder(
-          builder: (context) {
-            return Scaffold(
+      home: BlocProvider<AlertCubit>(
+        create: (context) => AlertCubit(),
+        child: Builder(builder: (context) {
+          final alertCubit = BlocProvider.of<AlertCubit>(context);
+
+          return AlertMessenger(
+            child: Scaffold(
               backgroundColor: Colors.grey[200],
               appBar: AppBar(
                 title: const Text('Alerts'),
@@ -34,15 +39,18 @@ class AlertPriorityApp extends StatelessWidget {
                   children: [
                     Expanded(
                       flex: 3,
-                      child: Center(
-                        child: Text(
-                          '<Adicione o texto do alerta de prioridade aqui>',
-                          style: TextStyle(
-                            color: Colors.grey[500],
-                            fontSize: 16.0,
+                      child: BlocBuilder<AlertCubit, AlertData?>(
+                          builder: (context, alertDataState) {
+                        return Center(
+                          child: Text(
+                            alertDataState?.child ?? 'No Alert',
+                            style: TextStyle(
+                              color: Colors.grey[500],
+                              fontSize: 16.0,
+                            ),
                           ),
-                        ),
-                      ),
+                        );
+                      }),
                     ),
                     Expanded(
                       child: Align(
@@ -56,21 +64,24 @@ class AlertPriorityApp extends StatelessWidget {
                               children: [
                                 ElevatedButton(
                                   onPressed: () {
-                                    AlertMessenger.of(context).showAlert(
-                                      alert: const Alert(
+                                    alertCubit.showAlert(
+                                      alert: const AlertData(
                                         backgroundColor: Colors.red,
-                                        leading: Icon(Icons.error),
+                                        leading: Icons.error,
                                         priority: AlertPriority.error,
-                                        child: Text('Oops, ocorreu um erro. Pedimos desculpas.'),
+                                        child:
+                                            'Oops, ocorreu um erro. Pedimos desculpas.',
                                       ),
                                     );
                                   },
                                   style: const ButtonStyle(
-                                    backgroundColor: MaterialStatePropertyAll(Colors.red),
+                                    backgroundColor:
+                                        MaterialStatePropertyAll(Colors.red),
                                   ),
                                   child: const Row(
                                     mainAxisSize: MainAxisSize.max,
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Icon(Icons.error),
                                       SizedBox(width: 4.0),
@@ -80,21 +91,23 @@ class AlertPriorityApp extends StatelessWidget {
                                 ),
                                 ElevatedButton(
                                   onPressed: () {
-                                    AlertMessenger.of(context).showAlert(
-                                      alert: const Alert(
+                                    alertCubit.showAlert(
+                                      alert: const AlertData(
                                         backgroundColor: Colors.amber,
-                                        leading: Icon(Icons.warning),
+                                        leading: Icons.warning,
                                         priority: AlertPriority.warning,
-                                        child: Text('Atenção! Você foi avisado.'),
+                                        child: 'Atenção! Você foi avisado.',
                                       ),
                                     );
                                   },
                                   style: const ButtonStyle(
-                                    backgroundColor: MaterialStatePropertyAll(Colors.amber),
+                                    backgroundColor:
+                                        MaterialStatePropertyAll(Colors.amber),
                                   ),
                                   child: const Row(
                                     mainAxisSize: MainAxisSize.max,
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Icon(Icons.warning_outlined),
                                       SizedBox(width: 4.0),
@@ -104,21 +117,24 @@ class AlertPriorityApp extends StatelessWidget {
                                 ),
                                 ElevatedButton(
                                   onPressed: () {
-                                    AlertMessenger.of(context).showAlert(
-                                      alert: const Alert(
+                                    alertCubit.showAlert(
+                                      alert: const AlertData(
                                         backgroundColor: Colors.green,
-                                        leading: Icon(Icons.info),
+                                        leading: Icons.info,
                                         priority: AlertPriority.info,
-                                        child: Text('Este é um aplicativo escrito em Flutter.'),
+                                        child:
+                                            'Este é um aplicativo escrito em Flutter.',
                                       ),
                                     );
                                   },
                                   style: const ButtonStyle(
-                                    backgroundColor: MaterialStatePropertyAll(Colors.lightGreen),
+                                    backgroundColor: MaterialStatePropertyAll(
+                                        Colors.lightGreen),
                                   ),
                                   child: const Row(
                                     mainAxisSize: MainAxisSize.max,
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Icon(Icons.info_outline),
                                       SizedBox(width: 4.0),
@@ -134,7 +150,7 @@ class AlertPriorityApp extends StatelessWidget {
                                 vertical: 16.0,
                               ),
                               child: ElevatedButton(
-                                onPressed: AlertMessenger.of(context).hideAlert,
+                                onPressed: alertCubit.hideAlert,
                                 child: const Text('Hide alert'),
                               ),
                             ),
@@ -145,9 +161,9 @@ class AlertPriorityApp extends StatelessWidget {
                   ],
                 ),
               ),
-            );
-          },
-        ),
+            ),
+          );
+        }),
       ),
     );
   }
